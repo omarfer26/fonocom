@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     // Leer usuarios directamente para ver qué tenemos
-    const usuarios = leerUsuarios()
+    const usuarios = await leerUsuarios()
     console.log("4. Usuarios en archivo:", usuarios)
     console.log("5. Cantidad de usuarios:", usuarios.length)
 

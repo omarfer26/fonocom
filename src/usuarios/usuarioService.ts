@@ -1,50 +1,71 @@
-import fs from "fs"
-import path from "path"
+import { prisma } from "../lib/prisma"
 import type { Progreso, Usuario } from "./usuario"
 
-const filePath = path.join(process.cwd(), "data", "data.json")
-
-export function leerUsuario(): Usuario {
-  const data = fs.readFileSync(filePath, "utf-8")
-  return JSON.parse(data)
+export async function leerUsuario(): Promise<Usuario | null> {
+  const users = await prisma.usuario.findMany({ include: { progreso: true } })
+  return (users[0] as unknown as Usuario) || null
 }
 
-export function leerUsuarios(): Usuario[] {
-  if (!fs.existsSync(filePath)) {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true })
-    fs.writeFileSync(filePath, "[]", "utf-8")
-  }
-  const data = fs.readFileSync(filePath, "utf-8")
-  return JSON.parse(data)
+export async function leerUsuarios(): Promise<Usuario[]> {
+  const users = await prisma.usuario.findMany({ include: { progreso: true } })
+  return users as unknown as Usuario[]
 }
 
-export function obtenerUsuario(username: string): Usuario | null {
-  const usuarios: Usuario[] = leerUsuarios()
-  console.log("Usuarios disponibles:", usuarios)
-  console.log("Buscando username:", username)
-
-  // Corregir la comparación para que coincida con el backend
-  const encontrado = usuarios.find((u: Usuario) => u.username.toLowerCase().trim() === username.toLowerCase().trim())
-
-  console.log("Usuario encontrado:", encontrado)
-  return encontrado || null
+export async function obtenerUsuario(username: string): Promise<Usuario | null> {
+  const user = await prisma.usuario.findUnique({
+    where: { username },
+    include: { progreso: true }
+  })
+  return user as unknown as Usuario | null
 }
 
-export function guardarUsuario(usuario: Usuario) {
-  const usuarios: Usuario[] = leerUsuarios()
-  const index = usuarios.findIndex((u: Usuario) => u.username === usuario.username)
-
-  if (index === -1) {
-    usuarios.push(usuario)
+export async function guardarUsuario(usuario: Usuario): Promise<void> {
+  const existing = await prisma.usuario.findUnique({ where: { username: usuario.username } })
+  if (existing) {
+    await prisma.usuario.update({
+      where: { username: usuario.username },
+      data: {
+        password: usuario.password,
+        progreso: usuario.progreso ? {
+          upsert: {
+            create: usuario.progreso,
+            update: usuario.progreso
+          }
+        } : undefined
+      }
+    })
   } else {
-    usuarios[index] = usuario
+    await prisma.usuario.create({
+      data: {
+        username: usuario.username,
+        password: usuario.password,
+        progreso: usuario.progreso ? {
+          create: usuario.progreso
+        } : undefined
+      }
+    })
   }
-
-  fs.writeFileSync(filePath, JSON.stringify(usuarios, null, 2), "utf-8")
 }
 
-export function actualizarProgreso(nuevoProgreso: Partial<Progreso>): void {
-  const usuario = leerUsuario()
-  usuario.progreso = { ...usuario.progreso, ...nuevoProgreso }
-  guardarUsuario(usuario)
+export async function actualizarProgreso(nuevoProgreso: Partial<Progreso>): Promise<void> {
+  const user = await leerUsuario()
+  if (user) {
+    const existing = await prisma.usuario.findUnique({ where: { username: user.username } })
+    if (existing) {
+      await prisma.progreso.upsert({
+        where: { usuarioId: existing.id },
+        create: { 
+          comunicacion: nuevoProgreso.comunicacion || 0,
+          empleo: nuevoProgreso.empleo || 0,
+          ideas: nuevoProgreso.ideas || 0,
+          usuarioId: existing.id 
+        },
+        update: {
+          comunicacion: nuevoProgreso.comunicacion,
+          empleo: nuevoProgreso.empleo,
+          ideas: nuevoProgreso.ideas,
+        }
+      })
+    }
+  }
 }

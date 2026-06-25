@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Autenticar usuario
-    const result = authService.authenticate(username.trim(), password)
+    const result = await authService.authenticate(username.trim(), password)
 
     if (result.success) {
       return NextResponse.json(result, { status: 200 })

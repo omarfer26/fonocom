@@ -1,5 +1,4 @@
-import fs from "fs"
-import path from "path"
+import { prisma } from "./prisma"
 
 export interface Progreso {
   comunicacion: number
@@ -9,8 +8,8 @@ export interface Progreso {
 
 export interface User {
   username: string
-  password: string
-  progreso: Progreso
+  password?: string
+  progreso?: Progreso | null
 }
 
 export interface LoginResponse {
@@ -20,64 +19,72 @@ export interface LoginResponse {
 }
 
 class AuthService {
-  private usersFilePath: string
-
-  constructor() {
-    this.usersFilePath = path.join(process.cwd(), "data", "users.json")
-  }
-
-  private loadUsers(): User[] {
+  private async loadDefaultUsers() {
     try {
-      // Crear directorio si no existe
-      const dataDir = path.dirname(this.usersFilePath)
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true })
-      }
-
-      // Crear archivo si no existe con los usuarios por defecto
-      if (!fs.existsSync(this.usersFilePath)) {
-        const defaultUsers: User[] = [
-          {
+      const count = await prisma.usuario.count()
+      if (count === 0) {
+        await prisma.usuario.create({
+          data: {
             username: "omar",
             password: "1234",
             progreso: {
-              comunicacion: 0,
-              empleo: 0,
-              ideas: 0,
-            },
-          },
-          {
+              create: {
+                comunicacion: 0,
+                empleo: 0,
+                ideas: 0,
+              }
+            }
+          }
+        })
+        await prisma.usuario.create({
+          data: {
             username: "ana",
             password: "abcd",
             progreso: {
-              comunicacion: 0,
-              empleo: 0,
-              ideas: 0,
-            },
-          },
-        ]
-        fs.writeFileSync(this.usersFilePath, JSON.stringify(defaultUsers, null, 2))
+              create: {
+                comunicacion: 0,
+                empleo: 0,
+                ideas: 0,
+              }
+            }
+          }
+        })
+        // También el usuario admin que estaba en users.json
+        await prisma.usuario.create({
+          data: {
+            username: "admin",
+            password: "123456",
+            progreso: {
+              create: {
+                comunicacion: 0,
+                empleo: 0,
+                ideas: 0,
+              }
+            }
+          }
+        })
       }
-
-      const fileContent = fs.readFileSync(this.usersFilePath, "utf-8")
-      return JSON.parse(fileContent)
-    } catch (error) {
-      console.error("Error loading users:", error)
-      return []
+    } catch (e) {
+      console.error(e)
     }
   }
 
-  public authenticate(username: string, password: string): LoginResponse {
+  constructor() {
+    this.loadDefaultUsers().catch(console.error)
+  }
+
+  public async authenticate(username: string, password: string): Promise<LoginResponse> {
     try {
-      const users = this.loadUsers()
+      const user = await prisma.usuario.findUnique({
+        where: { username },
+        include: { progreso: true }
+      })
 
-      const user = users.find((u) => u.username === username && u.password === password)
-
-      if (user) {
-        const { password, ...userWithoutPassword } = user
+      if (user && user.password === password) {
+        const { password: _, ...userWithoutPassword } = user
         return {
           success: true,
-          user: userWithoutPassword,
+          user: userWithoutPassword as any,
         }
       }
 
@@ -94,22 +101,39 @@ class AuthService {
     }
   }
 
-  public getAllUsers(): Omit<User, "password">[] {
-    const users = this.loadUsers()
-    return users.map(({ password, ...user }) => user)
+  public async getAllUsers(): Promise<Omit<User, "password">[]> {
+    const users = await prisma.usuario.findMany({
+      include: { progreso: true }
+    })
+    return users.map(({ password, ...user }) => user as any)
   }
 
-  public updateUserProgress(username: string, newProgress: Partial<Progreso>): boolean {
+  public async updateUserProgress(username: string, newProgress: Partial<Progreso>): Promise<boolean> {
     try {
-      const users = this.loadUsers()
-      const userIndex = users.findIndex((u) => u.username === username)
+      const user = await prisma.usuario.findUnique({
+        where: { username },
+        include: { progreso: true }
+      })
 
-      if (userIndex === -1) {
+      if (!user) {
         return false
       }
 
-      users[userIndex].progreso = { ...users[userIndex].progreso, ...newProgress }
-      fs.writeFileSync(this.usersFilePath, JSON.stringify(users, null, 2))
+      if (user.progreso) {
+        await prisma.progreso.update({
+          where: { usuarioId: user.id },
+          data: newProgress
+        })
+      } else {
+        await prisma.progreso.create({
+          data: {
+            comunicacion: newProgress.comunicacion || 0,
+            empleo: newProgress.empleo || 0,
+            ideas: newProgress.ideas || 0,
+            usuarioId: user.id
+          }
+        })
+      }
       return true
     } catch (error) {
       console.error("Error updating user progress:", error)

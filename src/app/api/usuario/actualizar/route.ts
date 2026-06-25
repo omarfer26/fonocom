@@ -1,25 +1,22 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { guardarUsuario, leerUsuario } from '@/usuarios/usuarioService'
 
 export async function POST(req: Request) {
   try {
     const data = await req.json()
+    const currentData = await leerUsuario()
 
-    const filePath = path.join(process.cwd(), 'src', 'data', 'data.json')
+    if (!currentData) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
 
-    // Leer los datos actuales
-    const currentData = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
-
-    // Fusionar datos nuevos con los existentes (solo actualiza username y password)
     const updatedData = {
       ...currentData,
       username: data.username ?? currentData.username,
       password: data.password ?? currentData.password,
     }
 
-    // Guardar los datos fusionados
-    fs.writeFileSync(filePath, JSON.stringify(updatedData, null, 2), 'utf-8')
+    await guardarUsuario(updatedData as any)
 
     return NextResponse.json(updatedData)
   } catch (error) {

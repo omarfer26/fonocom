@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { leerUsuario } from '@/usuarios/usuarioService'
 
 export async function GET() {
-  const filePath = path.join(process.cwd(), 'src', 'data', 'data.json')
-  const jsonData = fs.readFileSync(filePath, 'utf-8')
-  const usuario = JSON.parse(jsonData)
+  const usuario = await leerUsuario()
   return NextResponse.json(usuario)
 }
