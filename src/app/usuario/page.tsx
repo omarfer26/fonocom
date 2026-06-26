@@ -22,7 +22,7 @@ export default function UsuarioPage() {
   const router = useRouter()
   
   useEffect(() => {
-    const sesion = localStorage.getItem('usuario')
+    const sesion = localStorage.getItem('user')
     if (!sesion) {
       router.push('/login')
     } else {
@@ -31,7 +31,7 @@ export default function UsuarioPage() {
   }, [])
 
   const cerrarSesion = () => {
-    localStorage.removeItem('usuario')
+    localStorage.removeItem('user')
     router.push('/login')
   }
 
@@ -79,9 +79,9 @@ export default function UsuarioPage() {
         <br/>        
         {usuario ? (
           <div className="space-y-2">
-            <p>Progreso en Comunicación: {usuario.progreso.comunicacion}%</p>
-            <p>Progreso en Empleo: {usuario.progreso.empleo}%</p>
-            <p>Progreso en Ideas: {usuario.progreso.ideas}%</p>
+            <p>Progreso en Comunicación: {usuario.progreso?.comunicacion || 0}%</p>
+            <p>Progreso en Empleo: {usuario.progreso?.empleo || 0}%</p>
+            <p>Progreso en Ideas: {usuario.progreso?.ideas || 0}%</p>
           </div>
         ) : (
           <p>Cargando progreso...</p>
