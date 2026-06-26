@@ -107,7 +107,7 @@ class AuthService {
       include: { progreso: true }
     })
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    return users.map(({ password: _pw, ...user }) => user as Omit<typeof user, 'password'>)
+    return users.map(({ password: _pw, ...user }: { password: string | null; [key: string]: unknown }) => user as Omit<User, 'password'>)
   }
 
   public async updateUserProgress(username: string, newProgress: Partial<Progreso>): Promise<boolean> {
