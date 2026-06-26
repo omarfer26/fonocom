@@ -13,7 +13,7 @@
     "@prisma/client": "^7.8.0",
     "components": "^0.1.0",
     "filesystem": "^1.0.1",
-    "next": "^15.3.2",
+    "next": "15.3.8",
     "next-auth": "^5.0.0-beta.28",
     "pg": "^8.22.0",
     "react": "^19.0.0",
