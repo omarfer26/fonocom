@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Sidebar from './sidebar'
-import { Usuario } from '../usuarios/usuarioService'
+import { Usuario } from '../usuarios/usuario'
 
 export default function HomePage() {
   const [isOpen, setIsOpen] = useState(false)

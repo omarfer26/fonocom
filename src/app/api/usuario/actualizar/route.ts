@@ -16,6 +16,7 @@ export async function POST(req: Request) {
       password: data.password ?? currentData.password,
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await guardarUsuario(updatedData as any)
 
     return NextResponse.json(updatedData)

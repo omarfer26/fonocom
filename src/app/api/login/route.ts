@@ -52,6 +52,7 @@ export async function POST(req: Request) {
     }
 
     console.log("10. Autenticación exitosa")
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _password, ...usuarioSinPass } = usuarioEncontrado
 
     return NextResponse.json(usuarioSinPass)

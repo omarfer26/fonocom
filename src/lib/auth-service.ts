@@ -81,10 +81,11 @@ class AuthService {
       })
 
       if (user && user.password === password) {
-        const { password: _, ...userWithoutPassword } = user
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password: _pw, ...userWithoutPassword } = user
         return {
           success: true,
-          user: userWithoutPassword as any,
+          user: userWithoutPassword as Omit<typeof user, 'password'>,
         }
       }
 
@@ -105,7 +106,8 @@ class AuthService {
     const users = await prisma.usuario.findMany({
       include: { progreso: true }
     })
-    return users.map(({ password, ...user }) => user as any)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    return users.map(({ password: _pw, ...user }) => user as Omit<typeof user, 'password'>)
   }
 
   public async updateUserProgress(username: string, newProgress: Partial<Progreso>): Promise<boolean> {
